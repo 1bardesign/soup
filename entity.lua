@@ -8,14 +8,6 @@ function entity:new(kernel)
 	self.destroyed = false
 end
 
-function entity:c(name)
-	return self.named_behaviours[name]
-end
-
-function entity:b(name)
-	return self.named_behaviours[name]
-end
-
 function entity.__index(self, name)
 	local v = rawget(self, name)
 	if v ~= nil then
