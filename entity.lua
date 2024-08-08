@@ -16,6 +16,19 @@ function entity:b(name)
 	return self.named_behaviours[name]
 end
 
+function entity.__index(self, name)
+	local v = rawget(self, name)
+	if v ~= nil then
+		return v
+	end
+	local b = rawget(self, "named_behaviours")
+	b = b and b[name]
+	if b ~= nil then
+		return b
+	end
+	return entity[name]
+end
+
 function entity:add(behaviour)
 	if self.destroyed then
 		error("entity:add after destruction")
