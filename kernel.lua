@@ -52,34 +52,34 @@ function kernel:draw()
 end
 
 --queue add/remove
-function kernel:add(component)
-	table.insert(self.to_add, component)
-	return component
+function kernel:add(behaviour)
+	table.insert(self.to_add, behaviour)
+	return behaviour
 end
 
-function kernel:remove(component)
-	table.insert(self.to_remove, component)
-	return component
+function kernel:remove(behaviour)
+	table.insert(self.to_remove, behaviour)
+	return behaviour
 end
 
 --actual implementations of queued actions - use care when calling directly!
-function kernel:add_now(component)
-	table.insert(self.all, component)
+function kernel:add_now(behaviour)
+	table.insert(self.all, behaviour)
 	--also to any systems
 	for _, s in ipairs(self.all_systems) do
-		s:added(component)
+		s:added(behaviour)
 	end
 end
 
-function kernel:remove_now(component)
-	table.remove_value(self.all, component)
+function kernel:remove_now(behaviour)
+	table.remove_value(self.all, behaviour)
 	--also from any systems
 	for _, s in ipairs(self.all_systems) do
-		s:removed(component)
+		s:removed(behaviour)
 	end
 end
 
---add a component directly from a system
+--add a behaviour directly from a system
 function kernel:add_from_system(system_name, ...)
 	local sys = self.systems[system_name]
 	if not sys then

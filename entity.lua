@@ -2,80 +2,84 @@ local entity = class()
 
 function entity:new(kernel)
 	self.kernel = kernel
-	self.all_components = {}
-	self.named_components = {}
+	self.all_behaviours = {}
+	self.named_behaviours = {}
 
 	self.destroyed = false
 end
 
 function entity:c(name)
-	return self.named_components[name]
+	return self.named_behaviours[name]
 end
 
-function entity:add(component)
+function entity:b(name)
+	return self.named_behaviours[name]
+end
+
+function entity:add(behaviour)
 	if self.destroyed then
 		error("entity:add after destruction")
 		return
 	end
-	self.kernel:add(component)
-	table.insert(self.all_components, component)
-	return component
+	self.kernel:add(behaviour)
+	table.insert(self.all_behaviours, behaviour)
+	return behaviour
 end
 
-function entity:add_named(name, component)
-	self.named_components[name] = component
-	return self:add(component)
+function entity:add_named(name, behaviour)
+	self.named_behaviours[name] = behaviour
+	return self:add(behaviour)
 end
 
 function entity:add_from_system(system_name, ...) 
-	local component = self.kernel:add_from_system(system_name, ...)
-	table.insert(self.all_components, component)
-	return component
+	local behaviour = self.kernel:add_from_system(system_name, ...)
+	table.insert(self.all_behaviours, behaviour)
+	return behaviour
 end
 
 function entity:add_named_from_system(system_name, name, ...)
-	local component = self:add_from_system(system_name, ...)
-	self.named_components[name] = component
-	return component
+	local behaviour = self:add_from_system(system_name, ...)
+	self.named_behaviours[name] = behaviour
+	return behaviour
 end
 
-function entity:name_for(component)
-	for k, v in pairs(self.named_components) do
-		if v == component then
+function entity:name_for(behaviour)
+	for k, v in pairs(self.named_behaviours) do
+		if v == behaviour then
 			return k
 		end
 	end
 	return nil
 end
 
-function entity:remove(component_or_name)
+function entity:remove(behaviour_or_name)
 	if self.destroyed then
 		error("entity:remove after destruction")
 		return
 	end
 
-	local component, name
-	if type(component_or_name) == "string" then
-		name = component_or_name
-		component = self.named_components[name]
+	local behaviour, name
+	if type(behaviour_or_name) == "string" then
+		name = behaviour_or_name
+		behaviour = self.named_behaviours[name]
 	else
-		component = component_or_name
+		behaviour = behaviour_or_name
 	end
 
-	if table.remove_value(self.all_components, component) then
+	if table.remove_value(self.all_behaviours, behaviour) then
 		if not name then
-			name = self:name_for(component)
+			name = self:name_for(behaviour)
 		end
 		if name then
-			self.named_components[name] = nil
+			self.named_behaviours[name] = nil
 		end
-		self.kernel:remove(component)
+		self.kernel:remove(behaviour)
 	end
 end
 
 --remove everything and mark destroyed
 function entity:destroy()
-	for i, v in ripairs(self.all_components) do
+	for i, v in ripairs(self.all_behaviours) do
 		self:remove(v)
 	end
 	self.destroyed = true
