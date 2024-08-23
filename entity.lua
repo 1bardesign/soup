@@ -2,8 +2,11 @@ local entity = class()
 
 function entity:new(kernel)
 	self.kernel = kernel
+
 	self.all_behaviours = {}
 	self.named_behaviours = {}
+	
+	self.subscriptions = {}
 
 	self.destroyed = false
 end
@@ -22,10 +25,7 @@ function entity.__index(self, name)
 end
 
 function entity:add(behaviour)
-	if self.destroyed then
-		error("entity:add after destruction")
-		return
-	end
+	self:error_if_destroyed()
 	self.kernel:add(behaviour)
 	table.insert(self.all_behaviours, behaviour)
 	return behaviour
@@ -36,7 +36,8 @@ function entity:add_named(name, behaviour)
 	return self:add(behaviour)
 end
 
-function entity:add_from_system(system_name, ...) 
+function entity:add_from_system(system_name, ...)
+	self:error_if_destroyed()
 	local behaviour = self.kernel:add_from_system(system_name, ...)
 	table.insert(self.all_behaviours, behaviour)
 	return behaviour
@@ -58,10 +59,7 @@ function entity:name_for(behaviour)
 end
 
 function entity:remove(behaviour_or_name)
-	if self.destroyed then
-		error("entity:remove after destruction")
-		return
-	end
+	self:error_if_destroyed()
 
 	local behaviour, name
 	if type(behaviour_or_name) == "string" then
@@ -84,23 +82,53 @@ end
 
 --remove everything and mark destroyed
 function entity:destroy()
+	--clean up components
 	for i, v in ripairs(self.all_behaviours) do
 		self:remove(v)
 	end
+	--unsub everything
+	for i, v in ripairs(self.subscriptions) do
+		self.kernel.event:unsubscribe(v[1], v[2])
+		table.remove(self.subscriptions, i)
+	end
 	self.destroyed = true
+	self.enabled = false
+end
+
+function entity:error_if_destroyed()
+	if self.destroyed then
+		error("entity used after destruction")
+		return
+	end
 end
 
 --event handling proxied through the kernel
-function entity:subscribe(...)
-	self.kernel.event:subscribe(...)
+function entity:publish(event, ...)
+	self:error_if_destroyed()
+	self.kernel.event:publish(event, ...)
 end
 
-function entity:subscribe_once(...)
-	self.kernel.event:subscribe_once(...)
+function entity:subscribe(event, f)
+	self:error_if_destroyed()
+	self.kernel.event:subscribe(event, f)
+	table.insert(self.subscriptions, {event, f})
 end
 
-function entity:unsubscribe(...)
-	self.kernel.event:unsubscribe(...)
+function entity:subscribe_once(event, f)
+	self:error_if_destroyed()
+	f = self.kernel.event:subscribe_once(event, f)
+	table.insert(self.subscriptions, {event, f})
+end
+
+function entity:unsubscribe(event, f)
+	self:error_if_destroyed()
+	self.kernel.event:unsubscribe(event, f)
+	for i, v in ipairs(self.subscriptions) do
+		if v[1] == event and v[2] == f then
+			table.remove(self.subscriptions, i)
+			break
+		end
+	end
 end
 
 --sorting and ordering functions

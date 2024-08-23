@@ -7,6 +7,8 @@ local kernel = class()
 
 function kernel:new()
 	self.all = {}
+	--todo: split collections to cache has update/has draw
+
 	self.to_add = {}
 	self.to_remove = {}
 
