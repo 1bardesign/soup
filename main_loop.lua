@@ -5,6 +5,18 @@ local main_loop = class({
 	name = "main_loop",
 })
 
+function main_loop:profiler_push(f)
+	if self.profiler then
+		self.profiler:push(f)
+	end
+end
+
+function main_loop:profiler_pop(f)
+	if self.profiler then
+		self.profiler:pop(f)
+	end
+end
+
 function main_loop:new(args)
 	self.frametime = args.frametime or 1 / 60
 	if self.interpolate_render == nil then
@@ -17,6 +29,9 @@ function main_loop:new(args)
 	self.garbage_time = args.garbage_time or 1e-3
 
 	self.after_frame = args.after_frame
+
+	self.profiler = args.profiler
+	self.input = args.input
 
 	--redefine main loop
 	function love.run()
@@ -32,6 +47,8 @@ function main_loop:new(args)
 
 		-- Main loop time.
 		return function()
+			self:profiler_push("frame")
+			self:profiler_push("event")
 			-- process and handle events
 			if love.event then
 				love.event.pump()
@@ -44,8 +61,10 @@ function main_loop:new(args)
 					love.handlers[name](a,b,c,d,e,f)
 				end
 			end
+			self:profiler_pop("event")
 
 			-- get time passed, and accumulate
+			self:profiler_push("update")
 			local dt = love.timer.step()
 			-- fuzzy timing snapping
 			for _, v in ipairs {0.5, 1, 2} do
@@ -69,8 +88,10 @@ function main_loop:new(args)
 	 			self.ticks_per_second:add()
 	 			ticked = true
 	 		end
+			self:profiler_pop("update")
 
 	 		--render if we need to
+			self:profiler_push("draw")
 			if
 				love.graphics
 				and love.graphics.isActive()
@@ -81,18 +102,56 @@ function main_loop:new(args)
 
 				love.draw(frametimer / self.frametime) --pass interpolant
 
-				love.graphics.present()
+				if not (self.profiler and self.input and self.input.keyboard:pressed("`")) then
+					love.graphics.present()
+				end
 	 			self.frames_per_second:add()
 			end
+			self:profiler_pop("draw")
 
 			if self.after_frame then
 				self:after_frame()
 			else
 				--sweep garbage always
+				self:profiler_push("collect")
 				manual_gc(self.garbage_time)
+				self:profiler_pop("collect")
 
 				--give the cpu a break
+				self:profiler_push("sleep")
 				love.timer.sleep(0.001)
+				self:profiler_pop("sleep")
+			end
+			self:profiler_pop("frame")
+
+			--profiler stuff if relevant
+			if self.profiler and self.input then
+				if not love.filesystem.isFused() and self.input.keyboard:pressed(";") then
+					love.filesystem.write("profile.txt", self.profiler:format())
+				end
+				if self.input.keyboard:pressed("`") then
+					if self.input.keyboard:just_pressed("lshift") then
+						self.profiler:hold_result()
+					elseif self.input.keyboard:released("lshift") then
+						self.profiler:drop_hold()
+					end
+					if self.input.keyboard:just_pressed("lctrl") then
+						self.profiler:clear_worst()
+					end
+					if self.input.keyboard:just_pressed("return") then
+						self.profiler:print_result()
+					end
+					love.graphics.push()
+					love.graphics.origin()
+					love.graphics.translate(10, 10)
+					if not self.profiler_font then
+						self.profiler_font = love.graphics.newFont(8)
+					end
+					love.graphics.setFont(self.profiler_font)
+					self.profiler:draw_result()
+					love.graphics.pop()
+					love.graphics.present()
+				end
 			end
 		end
 	end

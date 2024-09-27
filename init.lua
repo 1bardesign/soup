@@ -14,6 +14,7 @@ return {
 	gamepad = require_relative("gamepad"),
 	input = require_relative("input"),
 
-	--important bits
+	--misc bits
+	profiler = require_relative("profiler"),
 	main_loop = require_relative("main_loop"),
 }
