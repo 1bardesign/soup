@@ -74,7 +74,7 @@ function entity:remove(behaviour_or_name)
 			name = self:name_for(behaviour)
 		end
 		if name then
-			self.named_behaviours[name] = nil
+			self.named_behaviours[name] = nil --todo: should we defer this?
 		end
 		self.kernel:remove(behaviour)
 	end
