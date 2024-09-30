@@ -69,7 +69,9 @@ function kernel:add_now(behaviour)
 	table.insert(self.all, behaviour)
 	--also to any systems
 	for _, s in ipairs(self.all_systems) do
-		s:added(behaviour)
+		if s.added then
+			s:added(behaviour)
+		end
 	end
 end
 
@@ -77,7 +79,9 @@ function kernel:remove_now(behaviour)
 	table.remove_value(self.all, behaviour)
 	--also from any systems
 	for _, s in ipairs(self.all_systems) do
-		s:removed(behaviour)
+		if s.removed then
+			s:removed(behaviour)
+		end
 	end
 end
 
