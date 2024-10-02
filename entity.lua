@@ -25,6 +25,9 @@ function entity.__index(self, name)
 end
 
 function entity:add(behaviour)
+	if type(behaviour) == "string" then
+		error("attempt to add string as behaviour; did you mean add_named")
+	end
 	self:error_if_destroyed()
 	self.kernel:add(behaviour)
 	table.insert(self.all_behaviours, behaviour)
