@@ -11,6 +11,7 @@ function kernel:new()
 
 	self.to_add = {}
 	self.to_remove = {}
+	self.deferred = {}
 
 	self.systems = {}
 	self.all_systems = {}
@@ -94,13 +95,21 @@ function kernel:add_from_system(system_name, ...)
 	return self:add(sys:create(...))
 end
 
+--defer something until outside of update/draw
+--todo: consider if we should natively support cancelling somehow
+function kernel:defer(f, ...)
+	table.insert(self.deferred, {f, ...})
+end
+
 function kernel:flush(dt)
-	while #self.to_add > 0 or #self.to_remove > 0 do
+	while #self.to_add > 0 or #self.to_remove > 0 or #self.deferred > 0 do
 		--swap beforehand, so any newly added things go into the next cycle
 		local _to_add = self.to_add
 		local _to_remove = self.to_remove
+		local _deferred = self.deferred
 		self.to_add = {}
 		self.to_remove = {}
+		self.deferred = {}
 		for _, v in ipairs(_to_add) do
 			self:add_now(v)
 			if dt and v.update then
@@ -109,6 +118,10 @@ function kernel:flush(dt)
 		end
 		for _, v in ipairs(_to_remove) do
 			self:remove_now(v)
+		end
+		for _, v in ipairs(_deferred) do
+			local f = table.remove(v, 1)
+			f(unpack(v))
 		end
 	end
 end
