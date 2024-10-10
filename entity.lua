@@ -77,11 +77,7 @@ function entity:remove(behaviour_or_name)
 			name = self:name_for(behaviour)
 		end
 		if name then
-			self.kernel:defer(function()
-				if self.named_behaviours[name] == behaviour then
-					self.named_behaviours[name] = nil
-				end
-			end)
+			self.named_behaviours[name] = nil
 		end
 		self.kernel:remove(behaviour)
 	end
@@ -89,17 +85,20 @@ end
 
 --remove everything and mark destroyed
 function entity:destroy()
-	--clean up components
-	for i, v in ripairs(self.all_behaviours) do
-		self:remove(v)
-	end
-	--unsub everything
-	for i, v in ripairs(self.subscriptions) do
-		self.kernel.event:unsubscribe(v[1], v[2])
-		table.remove(self.subscriptions, i)
-	end
-	self.destroyed = true
-	self.enabled = false
+	self.kernel:defer(function()
+		if self.destroyed then return end --double destroyed in one frame
+		--clean up components
+		for i, v in ripairs(self.all_behaviours) do
+			self:remove(v)
+		end
+		--unsub everything
+		for i, v in ripairs(self.subscriptions) do
+			self.kernel.event:unsubscribe(v[1], v[2])
+			table.remove(self.subscriptions, i)
+		end
+		self.destroyed = true
+		self.enabled = false
+	end)
 end
 
 function entity:error_if_destroyed()
