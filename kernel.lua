@@ -135,6 +135,9 @@ function kernel:add_system(name, system)
 	table.insert(self.all_systems, system)
 	--system is also added as a regular behaviour so it's updated, ordered and drawn same as everything else
 	self:add(system)
+	if system.register then
+		system:register(self, name)
+	end
 	--
 	return self --for chaining
 end
