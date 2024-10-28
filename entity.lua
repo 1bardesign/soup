@@ -138,15 +138,7 @@ function entity:unsubscribe(event, f)
 end
 
 --sorting and ordering functions
-function entity.behaviour_has_update(a)
-	return a.update and a.enabled ~= false
-end
-
 function entity.behaviour_sort_order(a)
-	if not entity.behaviour_has_update(a) then
-		--sort last, so we can skip them all
-		return math.huge
-	end
 	return a.order or 0
 end
 

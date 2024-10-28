@@ -7,7 +7,8 @@ local kernel = class()
 
 function kernel:new()
 	self.all = {}
-	--todo: split collections to cache has update/has draw
+	self.with_update = {}
+	self.with_draw = {}
 
 	self.to_add = {}
 	self.to_remove = {}
@@ -21,36 +22,29 @@ end
 
 function kernel:update(dt)
 	self:flush()
-	table.insertion_sort(self.all, entity.less)
-	for _, v in ipairs(self.all) do
-		if entity.behaviour_has_update(v) then
+	table.insertion_sort(self.with_update, entity.less)
+	for _, v in ipairs(self.with_update) do
+		if v.enabled ~= false then
 			v:update(dt)
-		else
-			break --all of them are sorted to the end so we can bulk skip them
 		end
 	end
 	self:flush(dt)
 end
 
 function kernel:draw()
-	local to_draw = {} 
-	for _, v in ipairs(self.all) do
+	table.insertion_sort(self.with_draw, entity.draw_less)
+	for _, v in ipairs(self.with_draw) do
 		if 
-			v.draw
-			and v.visible ~= false
+			v.visible ~= false
 			and v.enabled ~= false
 		then
-			table.insert(to_draw, v)
+			lg.push("all")
+			if v.pos then
+				lg.translate(v.pos.x, v.pos.y)
+			end
+			v:draw()
+			lg.pop()
 		end
-	end
-	table.insertion_sort(to_draw, entity.draw_less)
-	for _, v in ipairs(to_draw) do
-		lg.push("all")
-		if v.pos then
-			lg.translate(v.pos.x, v.pos.y)
-		end
-		v:draw()
-		lg.pop()
 	end
 end
 
@@ -68,6 +62,12 @@ end
 --actual implementations of queued actions - use care when calling directly!
 function kernel:add_now(behaviour)
 	table.insert(self.all, behaviour)
+	if type(behaviour.update) == "function" then
+		table.insert(self.with_update, behaviour)
+	end
+	if type(behaviour.draw) == "function" then
+		table.insert(self.with_draw, behaviour)
+	end
 	--also to any systems
 	for _, s in ipairs(self.all_systems) do
 		if s.added then
@@ -78,6 +78,12 @@ end
 
 function kernel:remove_now(behaviour)
 	table.remove_value(self.all, behaviour)
+	if type(behaviour.update) == "function" then
+		table.remove_value(self.with_update, behaviour)
+	end
+	if type(behaviour.draw) == "function" then
+		table.remove_value(self.with_draw, behaviour)
+	end
 	--also from any systems
 	for _, s in ipairs(self.all_systems) do
 		if s.removed then
@@ -112,7 +118,7 @@ function kernel:flush(dt)
 		self.deferred = {}
 		for _, v in ipairs(_to_add) do
 			self:add_now(v)
-			if dt and v.update then
+			if dt and v.update and v.enabled then
 				v:update(dt)
 			end
 		end
