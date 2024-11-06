@@ -15,6 +15,11 @@ return {
 	input = require_relative("input"),
 
 	--misc bits
+	frequency_counter = require_relative("frequency_counter"),
+	random_pool = require_relative("random_pool"),
+	crossfade = require_relative("crossfade"),
+
+	--management
 	profiler = require_relative("profiler"),
 	main_loop = require_relative("main_loop"),
 }
