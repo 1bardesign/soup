@@ -96,8 +96,11 @@ function entity:destroy()
 			self.kernel.event:unsubscribe(v[1], v[2])
 			table.remove(self.subscriptions, i)
 		end
-		self.destroyed = true
-		self.enabled = false
+		--do this in a hot minute
+		self.kernel:defer(function()
+			self.destroyed = true
+			self.enabled = false
+		end)
 	end)
 end
 
