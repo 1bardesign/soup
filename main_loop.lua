@@ -83,10 +83,12 @@ function main_loop:new(args)
 
 	 		--spin updates if we're ready
 	 		while frametimer > self.frametime do
+				self:profiler_push("tick")
 	 			frametimer = frametimer - self.frametime
 	 			love.update(self.frametime) --pass consistent dt
 	 			self.ticks_per_second:add()
 	 			ticked = true
+				self:profiler_pop("tick")
 	 		end
 			self:profiler_pop("update")
 
@@ -145,7 +147,7 @@ function main_loop:new(args)
 					love.graphics.origin()
 					love.graphics.translate(10, 10)
 					if not self.profiler_font then
-						self.profiler_font = love.graphics.newFont(8)
+						self.profiler_font = love.graphics.newFont(10)
 					end
 					love.graphics.setFont(self.profiler_font)
 					self.profiler:draw_result()
