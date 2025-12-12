@@ -28,4 +28,11 @@ function input:update(dt)
 	end
 end
 
+function input:clear()
+	self.keyboard:clear()
+	self.mouse:clear()
+	self.gamepad:clear()
+end
+
+
 return input
