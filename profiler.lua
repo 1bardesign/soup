@@ -168,7 +168,7 @@ function profiler:draw_result()
 	lg.push()
 	local f = lg.getFont()
 	local line_height = f:getHeight() * f:getLineHeight()
-	local list_width = 390
+	local list_width = 490
 	local labels = {
 		"current",
 		"worst",
@@ -190,12 +190,12 @@ function profiler:draw_result()
 			lg.translate(v.depth * 10, 0)
 			lg.print(v.name, 0, 0)
 			if v.duration and v.memory then
-				lg.printf(("%5.2fms"):format(v.duration), 90, 0, 45, "right")
-				lg.printf(("%4.0fmb"):format(v.memory / 1024 / 1024), 145, 0, 45, "right")
-				lg.printf(("%+4.2fmb"):format(v.memory_delta / 1024 / 1024), 190, 0, 45, "right")
-				lg.printf(("%4.0fvmb"):format(v.vram / 1024 / 1024), 225, 0, 45, "right")
-				lg.printf(("%+4.2fvmb"):format(v.vram_delta / 1024 / 1024), 270, 0, 45, "right")
-				lg.printf(("%dd"):format(v.draw_delta), 315, 0, 40, "right")
+				lg.printf(("%5.2fms"):format(v.duration),                    90, 0, 55, "right")
+				lg.printf(("%4.0fmb"):format(v.memory / 1024 / 1024),        150, 0, 55, "right")
+				lg.printf(("%+4.2fmb"):format(v.memory_delta / 1024 / 1024), 210, 0, 55, "right")
+				lg.printf(("%4.0fvmb"):format(v.vram / 1024 / 1024),         270, 0, 55, "right")
+				lg.printf(("%+4.2fvmb"):format(v.vram_delta / 1024 / 1024),  330, 0, 55, "right")
+				lg.printf(("%dd"):format(v.draw_delta),                      390, 0, 25, "right")
 			end
 			lg.pop()
 			lg.translate(0, line_height)
