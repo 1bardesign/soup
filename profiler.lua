@@ -105,14 +105,10 @@ function profiler:pop(name)
 	end
 end
 
-function profiler:wrap_system(name, system)
-	if system.update then
-		system.update = self:wrap_function(name .. "_update", system.update)
-	end
-	if system.draw then
-		system.draw = self:wrap_function(name .. "_draw", system.draw)
-	end
-	return system
+function profiler:section(name, f, ...)
+	self:push(name)
+	f(...)
+	self:pop(name)
 end
 
 function profiler:wrap_function(name, f)
@@ -122,6 +118,16 @@ function profiler:wrap_function(name, f)
 		self:pop(name)
 		return unpack(result)
 	end
+end
+
+function profiler:wrap_system(name, system)
+	if system.update then
+		system.update = self:wrap_function(name .. "_update", system.update)
+	end
+	if system.draw then
+		system.draw = self:wrap_function(name .. "_draw", system.draw)
+	end
+	return system
 end
 
 function profiler:hold_result()
