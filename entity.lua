@@ -61,16 +61,32 @@ function entity:name_for(behaviour)
 	return nil
 end
 
-function entity:remove(behaviour_or_name)
-	self:error_if_destroyed()
-
+function entity:_behaviour_and_name(behaviour_or_name)
 	local behaviour, name
 	if type(behaviour_or_name) == "string" then
 		name = behaviour_or_name
 		behaviour = self.named_behaviours[name]
 	else
 		behaviour = behaviour_or_name
+		name = self:name_for(behaviour)
 	end
+	return behaviour, name
+end
+
+function entity:remove(behaviour_or_name)
+	local behaviour, name = self:_behaviour_and_name(behaviour_or_name)
+	if self:detach(behaviour_or_name) then
+		self.kernel:remove(behaviour)
+	end
+end
+
+--make a behaviour independent of this entity,
+--so it is not removed from the kernel when the entity is destroyed
+--can be used to transfer to another entity or take over management
+function entity:detach(behaviour_or_name)
+	self:error_if_destroyed()
+
+	local behaviour, name = self:_behaviour_and_name(behaviour_or_name)
 
 	if table.remove_value(self.all_behaviours, behaviour) then
 		if not name then
@@ -79,7 +95,25 @@ function entity:remove(behaviour_or_name)
 		if name then
 			self.named_behaviours[name] = nil
 		end
-		self.kernel:remove(behaviour)
+		return true
+	end
+	return false
+end
+
+--attach a behaviour which has already been added to the kernel
+--so that it gets cleaned up with this entity
+function entity:attach(name_or_behaviour, behaviour_if_named)
+	local name, behaviour
+	if type(name_or_behaviour) == "string" then
+		name = name_or_behaviour
+		behaviour = behaviour_if_named
+	else
+		name = nil
+		behaviour = name_or_behaviour
+	end
+	table.insert(self.all_behaviours, behaviour)
+	if name then
+		self.named_behaviours[name] = behaviour
 	end
 end
 
