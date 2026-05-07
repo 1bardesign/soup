@@ -60,7 +60,7 @@ end
 function gamepad:new(controller_index)
 	self.controller_index = controller_index or 1
 	self.stick = love.joystick.getJoysticks()[self.controller_index]
-	self.button_times = {}
+	self.button_data = {}
 	self:clear()
 end
 
@@ -79,10 +79,16 @@ function gamepad:refresh()
 	end
 end
 
+--get the raw time
+function gamepad:_raw_time(key)
+	local d = self.button_data[key]
+	return d and d.time or 0
+end
+
 --get the time a key has been pressed for
 --or -1 if the key is not pressed
 function gamepad:pressed_time(key)
-	local t = self.button_times[key]
+	local t = self:_raw_time(key)
 	if t == nil or t < 0 then
 		return -1
 	end
@@ -92,7 +98,7 @@ end
 --get the time a key has been released for
 --or -1 if the key is not released
 function gamepad:released_time(key)
-	local t = self.button_times[key]
+	local t = self:_raw_time(key)
 	if t == nil or t > 0 then
 		return -1
 	end
@@ -125,7 +131,10 @@ function gamepad:clear()
 		}
 	) do
 		for k, v in ipairs(p) do
-			self.button_times[v] = -1
+			self.button_data[v] = {
+				time = -1,
+				events = {},
+			}
 		end
 	end
 end
@@ -139,39 +148,49 @@ function gamepad:update(dt)
 		return
 	end
 
-	--update each button
-	for i, v in ipairs(self.buttons) do
-		--check pressed (different for axis vs button)
-		local pressed = false
-		if self.axes[v] then
-			local axis_start, axis_end, axis_name = unpack(self.axes[v])
-			local direction = axis_end - axis_start
-			local axis_value = self.stick:getGamepadAxis(axis_name)
-			if axis_value * direction > 0.5 then
-				pressed = true
-			end
-		else
-			if self.stick:isGamepadDown(v) then
-				pressed = true
-			end
+	--update axes 
+	for v, axis in pairs(self.axes) do
+		local axis_start, axis_end, axis_name = unpack(axis)
+		local direction = axis_end - axis_start
+		local axis_value = self.stick:getGamepadAxis(axis_name)
+		local pressed = axis_value * direction > 0.5
+		local old_pressed = self:pressed(v)
+		if pressed ~= old_pressed then
+			local d = self.button_data[v]
+			table.insert(d.events, pressed and "pressed" or "released")
 		end
+	end
 
-		--integrate forward
-		local t = self.button_times[v]
-		if pressed then
-			if t < 1 then
-				t = 1
-			else
-				t = t + dt
+	--handle events and integrate forward
+	for k, d in pairs(self.button_data) do
+		if #d.events > 0 then
+			local e = table.remove(d.events, 1)
+			if e == "pressed" then
+				d.time = 1
+			elseif e == "released" then
+				d.time = -1
 			end
 		else
-			if t > -1 then
-				t = -1
-			else
-				t = t - dt
-			end
+			d.time = d.time + dt * math.sign(d.time)
 		end
-		self.button_times[v] = t
+	end
+
+end
+
+--pressed/released events
+function gamepad:gamepadpressed(j, b)
+	if self.stick ~= j then return end
+	local d = self.button_data[b]
+	if d then
+		table.insert(d.events, "pressed")
+	end
+end
+
+function gamepad:gamepadreleased(j, b)
+	if self.stick ~= j then return end
+	local d = self.button_data[b]
+	if d then
+		table.insert(d.events, "released")
 	end
 end
 
