@@ -70,7 +70,7 @@ end
 function mouse:clear()
 	for _, v in ipairs(mouse.buttons) do
 		self.button_data[v] = {
-			time = -1,
+			time = 0,
 			events = {},
 		}
 	end

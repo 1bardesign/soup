@@ -132,7 +132,7 @@ function gamepad:clear()
 	) do
 		for k, v in ipairs(p) do
 			self.button_data[v] = {
-				time = -1,
+				time = 0,
 				events = {},
 			}
 		end

@@ -182,7 +182,7 @@ end
 function keyboard:clear(v)
 	if v then
 		self.key_data[v] = {
-			time = -1,
+			time = 0,
 			events = {},
 		}
 	else
