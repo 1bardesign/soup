@@ -48,6 +48,10 @@ gamepad.axes = {
 	["triggerright"] = {0, 1, "triggerright"}
 }
 
+gamepad.axis_buttons, gamepad.normal_buttons = functional.partition(gamepad.buttons, function(v)
+	return gamepad.axes[v] ~= nil
+end)
+
 --load a mapping database to support more controllers
 --do this before you create any gamepads!
 --eg from https://github.com/gabomdq/SDL_GameControllerDB
@@ -221,7 +225,7 @@ end
 --"any" key
 function gamepad:any_pressed()
 	if not self:active() then return false end
-	for _, k in ipairs(self.buttons) do
+	for _, k in ipairs(gamepad.normal_buttons) do
 		if self:pressed(k) then
 			return true
 		end
@@ -231,7 +235,28 @@ end
 
 function gamepad:any_just_pressed()
 	if not self:active() then return false end
-	for _, k in ipairs(self.buttons) do
+	for _, k in ipairs(gamepad.normal_buttons) do
+		if self:just_pressed(k) then
+			return true
+		end
+	end
+	return false
+end
+
+--"any" key including axes
+function gamepad:any_pressed_even_axes()
+	if not self:active() then return false end
+	for _, k in ipairs(gamepad.buttons) do
+		if self:pressed(k) then
+			return true
+		end
+	end
+	return false
+end
+
+function gamepad:any_just_pressed_even_axes()
+	if not self:active() then return false end
+	for _, k in ipairs(gamepad.buttons) do
 		if self:just_pressed(k) then
 			return true
 		end
