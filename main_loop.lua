@@ -25,6 +25,11 @@ function main_loop:new(args)
 	self.ticks_per_second = frequency_counter()
 	self.frames_per_second = frequency_counter()
 	self.interpolate_render = args.interpolate_render
+	
+	--time scaling
+	self.timescale = args.timescale or 1
+	self.time = 0
+	self.ticktime = 0
 
 	self.garbage_time = args.garbage_time or 1e-3
 
@@ -65,7 +70,8 @@ function main_loop:new(args)
 
 			-- get time passed, and accumulate
 			self:profiler_push("update")
-			local dt = love.timer.step()
+			local dt = love.timer.step() * self.timescale
+			self.time = self.time + dt
 			-- fuzzy timing snapping
 			for _, v in ipairs {0.5, 1, 2} do
 				v = self.frametime * v
@@ -84,6 +90,7 @@ function main_loop:new(args)
 	 		--spin updates if we're ready
 	 		while frametimer > self.frametime do
 				self:profiler_push("tick")
+				self.time = self.time + self.frametime
 	 			frametimer = frametimer - self.frametime
 	 			love.update(self.frametime) --pass consistent dt
 	 			self.ticks_per_second:add()
