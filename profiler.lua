@@ -39,10 +39,10 @@ end
 
 function profiler:query_graphics()
 	if not love.graphics then
-		return 0
+		return 0, 0, 0
 	end
 	local s = love.graphics.getStats()
-	return s.texturememory, s.drawcalls
+	return s.texturememory, s.drawcalls, love.graphics.getStackDepth()
 end
 
 function profiler:push(name)
@@ -57,13 +57,14 @@ function profiler:push(name)
 	end
 	name = self:_getname(name)
 
-	local vram, draws = self:query_graphics()
+	local vram, draws, graphics_stack = self:query_graphics()
 	local block = {
 		name = name,
 		time = t,
 		memory = m,
 		vram = vram,
 		draws = draws,
+		graphics_stack = graphics_stack,
 		depth = #self._stack + 1,
 		duration = 0,
 	}
@@ -82,9 +83,10 @@ function profiler:pop(name)
 	assert:equal(name, block.name, "profiler block names should match")
 	block.duration = (now - block.time) * 1000
 	block.memory_delta = (collectgarbage("count") * 1024) - block.memory
-	local vram, draws = self:query_graphics()
+	local vram, draws, graphics_stack = self:query_graphics()
 	block.vram_delta = (vram - block.vram)
 	block.draw_delta = (draws - block.draws)
+	block.graphics_stack_delta = (graphics_stack - block.graphics_stack)
 
 	if #self._stack == 0 then
 		--manage worst list
@@ -151,7 +153,7 @@ function profiler:format(r)
 	local t = {}
 	for _, v in ipairs(r) do
 		if v.duration and v.memory then
-			table.insert(t, (("%s% -30s %5.2fms %4.2fmb (%+4.2fmb) %4.2fvmb (%+4.2fvmb) %d draws"):format(
+			table.insert(t, (("%s% -30s %5.2fms %4.2fmb (%+4.2fmb) %4.2fvmb (%+4.2fvmb) %d draws %d push"):format(
 				("| "):rep(math.max(0, v.depth-2))..("+-"):rep(v.depth > 1 and 1 or 0),
 				v.name..":",
 				v.duration,
@@ -159,7 +161,8 @@ function profiler:format(r)
 				v.memory_delta / 1024 / 1024,
 				v.vram / 1024 / 1024,
 				v.vram_delta / 1024 / 1024,
-				v.draw_delta
+				v.draw_delta,
+				v.graphics_stack_delta
 			)))
 		end
 	end
@@ -174,13 +177,14 @@ function profiler:draw_result()
 	lg.push()
 	local f = lg.getFont()
 	local line_height = f:getHeight() * f:getLineHeight()
-	local list_width = 490
+	local list_width = 550
 	local labels = {
 		"current",
 		"worst",
 	}
 	for list_i, list in ipairs(table.append_inplace({self:result()}, self._worst)) do
 		lg.push()
+		local _, start_y = lg.transformPoint(0, 0)
 		for _, v in ipairs(
 			table.append_inplace({
 				{
@@ -202,12 +206,18 @@ function profiler:draw_result()
 				lg.printf(("%4.0fvmb"):format(v.vram / 1024 / 1024),         270, 0, 55, "right")
 				lg.printf(("%+4.2fvmb"):format(v.vram_delta / 1024 / 1024),  330, 0, 55, "right")
 				lg.printf(("%dd"):format(v.draw_delta),                      390, 0, 25, "right")
+				lg.printf(("%dp"):format(v.graphics_stack_delta),            430, 0, 25, "right")
 			end
 			lg.pop()
 			lg.translate(0, line_height)
 		end
+		local _, end_y = lg.transformPoint(0, 0)
+		local total_y = end_y - start_y
 		lg.pop()
-		lg.translate(list_width + 2, 0)
+		--vertical stack
+		lg.translate(0, total_y + 5)
+		--horizontal stack
+		-- lg.translate(list_width + 5, 0)
 	end
 	lg.pop()
 end
