@@ -54,6 +54,7 @@ function main_loop:new(args)
 		return function()
 			local start_of_loop = love.timer.getTime()
 			self:profiler_push("frame")
+			self:profiler_push("active")
 			self:profiler_push("event")
 			-- process and handle events
 			if love.event then
@@ -119,6 +120,8 @@ function main_loop:new(args)
 	 			self.frames_per_second:add()
 			end
 			self:profiler_pop("draw")
+
+			self:profiler_pop("active")
 
 			if self.after_frame then
 				self:after_frame()
