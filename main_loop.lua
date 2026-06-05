@@ -114,7 +114,7 @@ function main_loop:new(args)
 
 				love.draw(frametimer / self.frametime) --pass interpolant
 
-				if not (self.profiler and self.input and self.input.keyboard:pressed("`")) then
+				if not (self.profiler and love.keyboard.isDown("`")) then
 					love.graphics.present()
 				end
 	 			self.frames_per_second:add()
@@ -144,21 +144,40 @@ function main_loop:new(args)
 			self:profiler_pop("frame")
 
 			--profiler stuff if relevant
-			if self.profiler and self.input then
-				if not love.filesystem.isFused() and self.input.keyboard:pressed(";") then
-					love.filesystem.write("profile.txt", self.profiler:format())
+			if self.profiler then
+				if love.keyboard.isDown(";") then
+					if not self._pressed_write then
+						love.filesystem.write("profile.txt", self.profiler:format())
+						self._pressed_write = true
+					end
+				else
+					self._pressed_write = false
 				end
-				if self.input.keyboard:pressed("`") then
-					if self.input.keyboard:just_pressed("lshift") then
-						self.profiler:hold_result()
-					elseif self.input.keyboard:released("lshift") then
-						self.profiler:drop_hold()
-					end
-					if self.input.keyboard:just_pressed("lctrl") then
-						self.profiler:clear_worst()
-					end
-					if self.input.keyboard:just_pressed("return") then
-						self.profiler:print_result()
+				if love.keyboard.isDown("`") then
+					--special key handling
+					if love.keyboard.isDown("lctrl") then
+						if not self._pressed_special then
+							self.profiler:clear_worst()
+							self._pressed_special = true
+						end
+					elseif love.keyboard.isDown("return") then
+						if not self._pressed_special then
+							self.profiler:print_result()
+							self._pressed_special = true
+						end
+					elseif love.keyboard.isDown("lshift") then
+						if not self._pressed_special then
+							if not self.profiler._hold then
+								self.profiler:hold_result()
+							end
+							self._pressed_special = true
+						end
+					else
+						if self.profiler._hold then
+							self.profiler:drop_hold()
+						end
+						--released
+						self._pressed_special = false
 					end
 					love.graphics.push()
 					love.graphics.origin()

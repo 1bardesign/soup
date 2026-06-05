@@ -153,7 +153,7 @@ function profiler:format(r)
 	local t = {}
 	for _, v in ipairs(r) do
 		if v.duration and v.memory then
-			table.insert(t, (("%s% -30s %5.2fms %4.2fmb (%+4.2fmb) %4.2fvmb (%+4.2fvmb) %d draws %d push"):format(
+			table.insert(t, (("%s% -30s %5.2fms %4.2fmb (%+4.2fmb) %4.2fvmb (%+4.2fvmb) %d draws %d (%+d) stack"):format(
 				("| "):rep(math.max(0, v.depth-2))..("+-"):rep(v.depth > 1 and 1 or 0),
 				v.name..":",
 				v.duration,
@@ -162,6 +162,7 @@ function profiler:format(r)
 				v.vram / 1024 / 1024,
 				v.vram_delta / 1024 / 1024,
 				v.draw_delta,
+				v.graphics_stack,
 				v.graphics_stack_delta
 			)))
 		end
@@ -206,7 +207,8 @@ function profiler:draw_result()
 				lg.printf(("%4.0fvmb"):format(v.vram / 1024 / 1024),         270, 0, 55, "right")
 				lg.printf(("%+4.2fvmb"):format(v.vram_delta / 1024 / 1024),  330, 0, 55, "right")
 				lg.printf(("%dd"):format(v.draw_delta),                      390, 0, 25, "right")
-				lg.printf(("%dp"):format(v.graphics_stack_delta),            430, 0, 25, "right")
+				lg.printf(("%ds"):format(v.graphics_stack),                  410, 0, 25, "right")
+				lg.printf(("%+dp"):format(v.graphics_stack_delta),           450, 0, 25, "right")
 			end
 			lg.pop()
 			lg.translate(0, line_height)
