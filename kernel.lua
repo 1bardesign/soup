@@ -153,5 +153,20 @@ function kernel:add_system(name, system)
 	return self --for chaining
 end
 
+function kernel:release()
+	for _, v in ipairs(self.all) do
+		if not table.contains(self.all_systems, v) then
+			self:remove(v)
+		end
+	end
+	self:flush()
+
+	--(todo fix removing systems?)
+	-- for _, v in ipairs(self.all_systems) do
+	-- 	self:remove(v)
+	-- end
+	-- self:flush()
+	self:new()
+end
 
 return kernel
