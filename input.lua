@@ -19,6 +19,9 @@ input._first_cursor = true
 input._cursor_pressed = {false, false, false}
 input._cursor_old_pressed = {false, false, false}
 
+--if the whole input should be cleared if we swap modes (saves mistaken clicks on desktop, causes problems on deck)
+input.clear_on_mode_change = true
+
 function input:update(dt)
 	self.keyboard:update(dt)
 	self.mouse:update(dt)
@@ -43,7 +46,7 @@ function input:update(dt)
 	end
 
 	--clear on first press
-	if old_mode ~= self.mode then
+	if old_mode ~= self.mode and self.clear_on_mode_change then
 		self:clear()
 	end
 
