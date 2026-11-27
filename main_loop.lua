@@ -84,6 +84,12 @@ function main_loop:new(args)
 			end
 			-- dt clamping
 			dt = math.clamp(dt, 0, 2 * self.frametime)
+
+			--non-fixed update
+			if love.update then
+				love.update(dt)
+			end
+			
 	 		frametimer = frametimer + dt
 	 		-- accumulater clamping
 			frametimer = math.clamp(frametimer, 0, 8 * self.frametime)
@@ -91,15 +97,18 @@ function main_loop:new(args)
 			local ticked = false
 
 	 		--spin updates if we're ready
-	 		while frametimer > self.frametime do
-				self:profiler_push("tick")
-				self.ticktime = self.ticktime + self.frametime
-	 			frametimer = frametimer - self.frametime
-	 			love.update(self.frametime) --pass consistent dt
-	 			self.ticks_per_second:add()
-	 			ticked = true
-				self:profiler_pop("tick")
-	 		end
+	 		if love.fixed_update then
+		 		while frametimer > self.frametime do
+					self:profiler_push("tick")
+					self.ticktime = self.ticktime + self.frametime
+		 			frametimer = frametimer - self.frametime
+		 			love.fixed_update(self.frametime) --pass consistent dt
+		 			self.ticks_per_second:add()
+		 			ticked = true
+					self:profiler_pop("tick")
+		 		end
+		 	end
+
 			self:profiler_pop("update")
 
 	 		--render if we need to

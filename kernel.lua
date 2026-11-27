@@ -5,10 +5,98 @@ local entity = require(path .. ".entity")
 
 local kernel = class()
 
-function kernel:new()
+kernel.default_phases = {
+	{
+		name = "update",
+		keys = {
+			"update",
+		},
+		sort = entity.less,
+		flush = true,
+		setup = function(k) end,
+		action = function(k, v, dt)
+			v:update(dt)
+		end,
+		cleanup = function(k) end,
+	},
+	{
+		name = "fixed_update",
+		keys = {
+			"fixed_update",
+		},
+		sort = entity.less,
+		flush = true,
+		setup = function(k) end,
+		action = function(k, v)
+			v:fixed_update(dt)
+		end,
+		cleanup = function(k) end,
+	},
+	{
+		name = "draw",
+		keys = {
+			"draw"
+		},
+		sort = entity.draw_less,
+		setup = function(k) end,
+		action = function(k, v)
+			if 
+				v.visible ~= false
+			then
+				lg.push("all")
+				if v.pos then
+					lg.translate(v.pos.x, v.pos.y)
+				end
+				v:draw()
+				lg.pop()
+			end
+		end,
+		cleanup = function(k) end,
+	},
+}
+
+function kernel:new(args)
+	args = args or {}
+
 	self.all = {}
-	self.with_update = {}
-	self.with_draw = {}
+
+	self.phases = args.phases or kernel.default_phases
+	self.with = {}
+	--generate the phase functions
+	for _, phase in ipairs(self.phases) do
+		self.with[phase.name] = {}
+		self[phase.name] = function(self, ...)
+			profiler:push(phase.name)
+			if phase.flush then
+				self:flush()
+			end
+			local collection = phase.everything and self.all or self.with[phase.name]
+			if phase.sort then
+				table.insertion_sort(collection, phase.sort)
+			end
+			if phase.setup then
+				phase.setup(self, ...)
+			end
+			if phase.ignore_enabled then
+				for _, v in ipairs(collection) do
+					phase.action(self, v, ...)
+				end
+			else
+				for _, v in ipairs(collection) do
+					if v.enabled ~= false then
+						phase.action(self, v, ...)
+					end
+				end
+			end
+			if phase.cleanup then
+				phase.cleanup(self, ...)
+			end
+			if phase.flush then
+				self:flush()
+			end
+			profiler:pop(phase.name)
+		end
+	end
 
 	self.to_add = {}
 	self.to_remove = {}
@@ -18,34 +106,6 @@ function kernel:new()
 	self.all_systems = {}
 
 	self.event = pubsub()
-end
-
-function kernel:update(dt)
-	self:flush()
-	table.insertion_sort(self.with_update, entity.less)
-	for _, v in ipairs(self.with_update) do
-		if v.enabled ~= false then
-			v:update(dt)
-		end
-	end
-	self:flush(dt)
-end
-
-function kernel:draw()
-	table.insertion_sort(self.with_draw, entity.draw_less)
-	for _, v in ipairs(self.with_draw) do
-		if 
-			v.visible ~= false
-			and v.enabled ~= false
-		then
-			lg.push("all")
-			if v.pos then
-				lg.translate(v.pos.x, v.pos.y)
-			end
-			v:draw()
-			lg.pop()
-		end
-	end
 end
 
 --queue add/remove
@@ -62,11 +122,17 @@ end
 --actual implementations of queued actions - use care when calling directly!
 function kernel:add_now(behaviour)
 	table.insert(self.all, behaviour)
-	if type(behaviour.update) == "function" then
-		table.insert(self.with_update, behaviour)
-	end
-	if type(behaviour.draw) == "function" then
-		table.insert(self.with_draw, behaviour)
+	for _, phase in ipairs(self.phases) do
+		local has_all = true
+		for _, key in ipairs(phase.keys) do
+			if type(behaviour[key]) ~= "function" then
+				has_all = false
+				break
+			end
+		end
+		if has_all then
+			table.insert(self.with[phase.name], behaviour)
+		end
 	end
 	--also to any systems
 	for _, s in ipairs(self.all_systems) do
@@ -78,11 +144,9 @@ end
 
 function kernel:remove_now(behaviour)
 	table.remove_value(self.all, behaviour)
-	if type(behaviour.update) == "function" then
-		table.remove_value(self.with_update, behaviour)
-	end
-	if type(behaviour.draw) == "function" then
-		table.remove_value(self.with_draw, behaviour)
+	--and from phase tables
+	for _, v in ipairs(self.phases) do
+		table.remove_value(self.with[v.name], behaviour)
 	end
 	--also from any systems
 	for _, s in ipairs(self.all_systems) do
