@@ -27,7 +27,7 @@ kernel.default_phases = {
 		sort = entity.less,
 		flush = true,
 		setup = function(k) end,
-		action = function(k, v)
+		action = function(k, v, dt)
 			v:fixed_update(dt)
 		end,
 		cleanup = function(k) end,
